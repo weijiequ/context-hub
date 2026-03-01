@@ -1,5 +1,5 @@
 ---
-name: sdk
+name: email
 description: "Modern email API platform with React Email integration, batch sending, scheduling, webhooks, and domain management"
 metadata:
   languages: "javascript"

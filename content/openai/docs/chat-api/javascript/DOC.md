@@ -1,5 +1,5 @@
 ---
-name: chat
+name: chat-api
 description: "GPT-4 and ChatGPT API for text generation, chat completions, streaming, function calling, vision, embeddings, and assistants"
 metadata:
   languages: "javascript"

@@ -1,5 +1,5 @@
 ---
-name: sdk
+name: messaging
 description: "Cloud communications platform for SMS, voice, video, and WhatsApp messaging with programmable APIs"
 metadata:
   languages: "python"

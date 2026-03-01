@@ -1,5 +1,5 @@
 ---
-name: sdk
+name: client
 description: "Open-source Firebase alternative with PostgreSQL backend, authentication, storage, realtime subscriptions, and edge functions"
 metadata:
   languages: "javascript"

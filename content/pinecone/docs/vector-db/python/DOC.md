@@ -1,5 +1,5 @@
 ---
-name: sdk
+name: vector-db
 description: "Vector database for AI applications with semantic search, hybrid search, reranking, and integrated embeddings"
 metadata:
   languages: "python"

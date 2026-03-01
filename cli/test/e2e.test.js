@@ -1,24 +1,22 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { homedir } from 'node:os';
+import { tmpdir } from 'node:os';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const CLI = join(__dirname, '..', 'bin', 'chub');
 const FIXTURES = join(__dirname, 'fixtures');
 const BUILD_OUTPUT = join(FIXTURES, 'dist');
-const CHUB_DIR = join(homedir(), '.chub');
-const CONFIG_PATH = join(CHUB_DIR, 'config.yaml');
 
-let originalConfig = null;
+let tmpChubDir;
 
 function chub(args, { expectError = false } = {}) {
   try {
     const result = execFileSync('node', [CLI, ...args], {
       encoding: 'utf8',
-      env: { ...process.env, NO_COLOR: '1' },
+      env: { ...process.env, NO_COLOR: '1', CHUB_DIR: tmpChubDir },
       timeout: 10000,
     });
     return result;
@@ -35,25 +33,19 @@ function chubJSON(args) {
 
 describe('chub CLI e2e', () => {
   beforeAll(() => {
-    // Save original config
-    if (existsSync(CONFIG_PATH)) {
-      originalConfig = readFileSync(CONFIG_PATH, 'utf8');
-    }
+    // Use an isolated temp directory so we never touch ~/.chub
+    tmpChubDir = mkdtempSync(join(tmpdir(), 'chub-e2e-'));
 
     // Build fixtures
     chub(['build', FIXTURES]);
 
     // Point config at fixture build output (local source only)
-    mkdirSync(CHUB_DIR, { recursive: true });
-    writeFileSync(CONFIG_PATH, `sources:\n  - name: test\n    path: ${BUILD_OUTPUT}\n\nsource: official,maintainer,community\n`);
+    writeFileSync(join(tmpChubDir, 'config.yaml'), `sources:\n  - name: test\n    path: ${BUILD_OUTPUT}\n\nsource: official,maintainer,community\n`);
   });
 
   afterAll(() => {
-    // Restore original config
-    if (originalConfig) {
-      writeFileSync(CONFIG_PATH, originalConfig);
-    }
-    // Clean up build output
+    // Clean up temp dir and build output
+    rmSync(tmpChubDir, { recursive: true, force: true });
     rmSync(BUILD_OUTPUT, { recursive: true, force: true });
   });
 

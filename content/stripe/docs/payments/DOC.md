@@ -1,5 +1,5 @@
 ---
-name: api
+name: payments
 description: "Payment processing platform with comprehensive payment and billing features including Payment Intents, Subscriptions, Checkout, customer management, webhooks, and Connect for marketplaces"
 metadata:
   languages: "javascript"

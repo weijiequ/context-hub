@@ -15,7 +15,7 @@ const DEFAULTS = {
 let _config = null;
 
 export function getChubDir() {
-  return join(homedir(), '.chub');
+  return process.env.CHUB_DIR || join(homedir(), '.chub');
 }
 
 export function loadConfig() {

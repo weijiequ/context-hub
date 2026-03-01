@@ -69,15 +69,15 @@ We chose (3) because: the verb "get" is correct for both (you're fetching conten
 We considered using SKILL.md for everything since the Agent Skills spec is the format standard. But calling a 50K API reference "SKILL.md" is semantically misleading — agents that scan for skills would load doc descriptions into their system prompt (wasting ~100 tokens per doc entry), and might "activate" a doc when the user just wants to write code.
 
 ### Why `--lang` flag instead of positional argument?
-Originally: `chub get openai-chat python`. Changed to: `chub get docs openai/chat --lang python`.
+Originally: `chub get openai-chat python`. Changed to: `chub get docs openai/chat-api --lang python`.
 
 Reasons:
-1. Multi-id support (`chub get docs openai/chat stripe/payments`) would make a positional language argument ambiguous
+1. Multi-id support (`chub get docs openai/chat-api stripe/payments`) would make a positional language argument ambiguous
 2. Language can be auto-inferred when an entry has only one — the flag is only needed for disambiguation
 3. Flags are self-documenting; a bare `python` after an id is ambiguous to readers
 
 ### Why multi-id support?
-Agents often need multiple docs in one operation. Rather than looping, `chub get docs openai/chat stripe/payments` fetches both. Output is concatenated with `---` separators for stdout, or written as separate files when `-o` points to a directory.
+Agents often need multiple docs in one operation. Rather than looping, `chub get docs openai/chat-api stripe/payments` fetches both. Output is concatenated with `---` separators for stdout, or written as separate files when `-o` points to a directory.
 
 ### Why one CLI, not two?
 We considered separate tools for docs and skills. Rejected because they share the same registry, config, sources, search, and cache infrastructure.
@@ -103,10 +103,10 @@ Three approaches were considered:
 3. **Hybrid** (chosen) — registry-only by default, on-demand doc fetching, optional full bundle
 
 ### Why author-prefixed IDs?
-IDs are always `author/name` — e.g., `openai/chat`, `stripe/payments`, `playwright-community/login-flows`. The author is the top-level directory name in the content repo; the name comes from frontmatter. This eliminates name collisions by construction — two authors can both have a `chat` entry, but their ids differ (`openai/chat` vs `mycompany/chat`). This is the same pattern as npm scopes, Docker images, and GitHub repos.
+IDs are always `author/name` — e.g., `openai/chat-api`, `stripe/payments`, `playwright-community/login-flows`. The author is the top-level directory name in the content repo; the name comes from frontmatter. This eliminates name collisions by construction — two authors can both have a `chat` entry, but their ids differ (`openai/chat-api` vs `mycompany/chat`). This is the same pattern as npm scopes, Docker images, and GitHub repos.
 
 ### Why `source:` prefix (not `source/`) for multi-source?
-When multiple sources define the same id, the user disambiguates with a `source:` prefix: `internal:openai/chat` vs `community:openai/chat`. We use colon instead of slash because ids already contain slashes (`author/name`). Using `source/author/name` would be ambiguous — is `internal` the source or the author?
+When multiple sources define the same id, the user disambiguates with a `source:` prefix: `internal:openai/chat-api` vs `community:openai/chat-api`. We use colon instead of slash because ids already contain slashes (`author/name`). Using `source/author/name` would be ambiguous — is `internal` the source or the author?
 
 ### Why multi-source?
 Teams often have internal/proprietary docs alongside the public community registry. The CLI supports multiple sources — remote CDNs and local folders. Entries are merged, and IDs are namespaced with `source:` only when there's a collision across sources.
@@ -173,7 +173,7 @@ The build walks the author directory, finds all DOC.md and SKILL.md files, and p
 **DOC.md frontmatter:**
 ```yaml
 ---
-name: chat
+name: chat-api
 description: OpenAI Chat API - completions, streaming, function calling
 metadata:
   languages: "python,javascript,typescript"    # comma-separated, multi-lang
@@ -221,7 +221,7 @@ openai/
                 └── structured-outputs.md
 ```
 
-Both DOC.md files have `name: chat` (under the `openai/` author directory) — they get grouped into `id: openai/chat`, into one `docs[]` entry with multiple versions pointing to different paths. `recommendedVersion` is the highest semver. `chub get docs openai/chat` gets the latest; `--version 1.52.0` gets the older docs.
+Both DOC.md files have `name: chat-api` (under the `openai/` author directory) — they get grouped into `id: openai/chat-api`, into one `docs[]` entry with multiple versions pointing to different paths. `recommendedVersion` is the highest semver. `chub get docs openai/chat-api` gets the latest; `--version 1.52.0` gets the older docs.
 
 ### Language-specific docs
 
@@ -277,7 +277,7 @@ dist/
 ├── registry.json                              # Generated index
 ├── stripe/docs/payments/DOC.md               # Content files (copied)
 ├── stripe/docs/payments/references/...
-├── openai/docs/chat/DOC.md
+├── openai/docs/chat-api/DOC.md
 └── playwright-community/skills/login-flows/SKILL.md
 ```
 
@@ -300,19 +300,19 @@ Upload `dist/` to any static file host (S3, CloudFlare R2, GitHub Pages). The CL
 
 ### How `search` works
 - `chub search` — lists all entries (replaces `list`)
-- `chub search openai/chat` — exact id match shows full detail (replaces `info`)
+- `chub search openai/chat-api` — exact id match shows full detail (replaces `info`)
 - `chub search "stripe"` — fuzzy search across id, name, description, tags
 - `chub search --tags browser` — filtered listing
 - Results show `[doc]` or `[skill]` type labels
 
 ### How `get` works
-- `chub get docs openai/chat` — fetch DOC.md (entry point only)
-- `chub get docs openai/chat --full` — fetch all files in the entry
-- `chub get docs openai/chat --full -o .context/openai/` — write individual files preserving structure
-- `chub get docs openai/chat --lang python` — specify language when multiple available
-- `chub get docs openai/chat stripe/payments` — fetch multiple entries at once
+- `chub get docs openai/chat-api` — fetch DOC.md (entry point only)
+- `chub get docs openai/chat-api --full` — fetch all files in the entry
+- `chub get docs openai/chat-api --full -o .context/openai/` — write individual files preserving structure
+- `chub get docs openai/chat-api --lang python` — specify language when multiple available
+- `chub get docs openai/chat-api stripe/payments` — fetch multiple entries at once
 - `chub get skills pw-community/login-flows` — fetch SKILL.md from a skill entry
-- `chub get skills openai/chat` → error: `Entry "openai/chat" not found in skills.`
+- `chub get skills openai/chat-api` → error: `Entry "openai/chat-api" not found in skills.`
 
 ### Language inference
 - Entry has one language → auto-selected, no `--lang` needed
@@ -340,7 +340,7 @@ chub get docs "$ID" --lang js -o .context/stripe.md
 chub search "stripe" --json | jq -r '.results[:3][].id' | xargs chub get docs -o .context/
 
 # Fetch multiple docs at once
-chub get docs openai/chat stripe/payments -o .context/
+chub get docs openai/chat-api stripe/payments -o .context/
 
 # Install a skill into Claude Code's skill directory
 chub get skills pw-community/login-flows -o .claude/skills/login-flows/SKILL.md
@@ -349,7 +349,7 @@ chub get skills pw-community/login-flows -o .claude/skills/login-flows/SKILL.md
 chub get skills pw-community/login-flows --full -o .claude/skills/login-flows/
 
 # Multi-source: disambiguate with source: prefix
-chub get docs internal:openai/chat
+chub get docs internal:openai/chat-api
 ```
 
 ---
@@ -405,8 +405,8 @@ Local path sources are **not cached** — the CLI reads directly from the config
   "generated": "2026-02-02T00:00:00.000Z",
   "docs": [
     {
-      "id": "openai/chat",
-      "name": "chat",
+      "id": "openai/chat-api",
+      "name": "chat-api",
       "description": "Chat completions with GPT models",
       "source": "maintainer",
       "tags": ["openai", "chat", "llm"],
@@ -416,7 +416,7 @@ Local path sources are **not cached** — the CLI reads directly from the config
           "versions": [
             {
               "version": "1.52.0",
-              "path": "openai/docs/chat/v1",
+              "path": "openai/docs/chat-api/v1",
               "files": ["DOC.md", "references/streaming.md"],
               "size": 42000,
               "lastUpdated": "2026-01-15"
@@ -532,7 +532,6 @@ chub-first-draft/
 │   │       ├── frontmatter.js    # YAML frontmatter parser
 │   │       ├── output.js         # Dual-mode output (human with chalk / JSON)
 │   │       └── normalize.js      # Language aliases (js→javascript, py→python)
-├── sample-registry.json          # Example registry in docs[]/skills[] format
 ├── plans-for-reference/          # Archived design plans
 ├── NARRATIVE.md                  # Product pitch
 ├── DESIGN.md                     # This file

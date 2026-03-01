@@ -1,5 +1,5 @@
 ---
-name: sdk
+name: claude-api
 description: "Claude AI assistant API for text generation, analysis, conversation, streaming, tool use, vision, and batch processing"
 metadata:
   languages: "javascript"
