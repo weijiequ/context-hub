@@ -141,7 +141,7 @@ describe('chub CLI e2e', () => {
 
     it('errors on nonexistent entry', () => {
       const out = chub(['get', 'fake/thing'], { expectError: true });
-      expect(out).toContain('not found');
+      expect(out).toContain('No doc or skill found');
     });
 
     it('fetches --full with all files', () => {

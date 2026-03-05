@@ -19,13 +19,13 @@ async function fetchEntries(ids, opts, globalOpts) {
 
     if (result.ambiguous) {
       error(
-        `Multiple entries with id "${id}". Be specific:\n  ${result.alternatives.join('\n  ')}`,
+        `Multiple entries match "${id}". Use a source prefix:\n  ${result.alternatives.map((a) => `chub get ${a}`).join('\n  ')}`,
         globalOpts
       );
     }
 
     if (!result.entry) {
-      error(`Entry "${id}" not found.`, globalOpts);
+      error(`No doc or skill found with id "${id}".`, globalOpts);
     }
 
     const entry = result.entry;
@@ -33,7 +33,12 @@ async function fetchEntries(ids, opts, globalOpts) {
     const resolved = resolveDocPath(entry, opts.lang, opts.version);
 
     if (!resolved) {
-      error(`Could not resolve path for "${id}" ${opts.lang || ''} ${opts.version || ''}`.trim(), globalOpts);
+      if (opts.lang && entry.languages) {
+        const available = entry.languages.map((l) => l.language).join(', ');
+        error(`Language "${opts.lang}" is not available for "${id}". Available languages: ${available}.`, globalOpts);
+      } else {
+        error(`No content found for "${id}".`, globalOpts);
+      }
     }
 
     if (resolved.versionNotFound) {
@@ -52,7 +57,7 @@ async function fetchEntries(ids, opts, globalOpts) {
 
     const entryFile = resolveEntryFile(resolved, type);
     if (entryFile.error) {
-      error(`"${id}" ${entryFile.error}`, globalOpts);
+      error(`No content file found for "${id}".`, globalOpts);
     }
 
     // Determine which reference files exist (beyond DOC.md/SKILL.md)
@@ -83,7 +88,7 @@ async function fetchEntries(ids, opts, globalOpts) {
         results.push({ id: entry.id, type, content, path: entryFile.filePath, additionalFiles: refFiles });
       }
     } catch (err) {
-      error(err.message, globalOpts);
+      error(`Failed to fetch "${id}": ${err.message}`, globalOpts);
     }
   }
 
