@@ -32,7 +32,7 @@ export function registerAnnotateCommand(program) {
       }
 
       if (!id) {
-        error('Usage: chub annotate <id> <note> | chub annotate <id> --clear | chub annotate --list', globalOpts);
+        error('Missing required argument: <id>. Run: chub annotate <id> <note> | chub annotate <id> --clear | chub annotate --list', globalOpts);
       }
 
       if (opts.clear) {

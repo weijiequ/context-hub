@@ -62,7 +62,7 @@ export function registerFeedbackCommand(program) {
 
       // BUG #1 FIX: Validation errors respect --json flag
       if (!id || !rating) {
-        error('Missing arguments. Usage: chub feedback <id> <up|down> [comment]', globalOpts);
+        error('Missing required arguments: <id> and <rating>. Run: chub feedback <id> <up|down> [comment]', globalOpts);
       }
 
       if (rating !== 'up' && rating !== 'down') {

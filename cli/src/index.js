@@ -12,6 +12,7 @@ import { registerBuildCommand } from './commands/build.js';
 import { registerFeedbackCommand } from './commands/feedback.js';
 import { registerAnnotateCommand } from './commands/annotate.js';
 import { trackEvent, shutdownAnalytics } from './lib/analytics.js';
+import { error } from './lib/output.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const pkg = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf8'));
@@ -100,9 +101,8 @@ program.hook('preAction', async (thisCommand) => {
   try {
     await ensureRegistry();
   } catch (err) {
-    process.stderr.write(`Warning: Could not load registry: ${err.message}\n`);
-    process.stderr.write(`Run \`chub update\` to initialize.\n`);
-    process.exit(1);
+    const globalOpts = thisCommand.optsWithGlobals?.() || {};
+    error(`Registry not available: ${err.message}. Run \`chub update\` to initialize.`, globalOpts);
   }
 });
 
