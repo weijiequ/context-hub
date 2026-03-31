@@ -31,13 +31,18 @@ Zuora provides multiple environments across regions:
 
 | Environment | Base URL |
 |---|---|
-| US Production (Cloud 2) | `https://rest.zuora.com` |
-| US Sandbox (Cloud 2) | `https://rest.apisandbox.zuora.com` |
+| US Developer & Central Sandbox | `https://rest.test.zuora.com` |
+| US API Sandbox (Cloud 1) | `https://rest.sandbox.na.zuora.com` |
+| US API Sandbox (Cloud 2) | `https://rest.apisandbox.zuora.com` |
 | US Production (Cloud 1) | `https://rest.na.zuora.com` |
+| US Production (Cloud 2) | `https://rest.zuora.com` |
+| EU Developer & Central Sandbox | `https://rest.test.eu.zuora.com` |
+| EU API Sandbox | `https://rest.sandbox.eu.zuora.com` |
 | EU Production | `https://rest.eu.zuora.com` |
-| EU Sandbox | `https://rest.sandbox.eu.zuora.com` |
+| APAC Developer & Central Sandbox | `https://rest.test.ap.zuora.com` |
+| APAC Production | `https://rest.ap.zuora.com` |
 
-All SDKs support environment selection via enum constants (e.g., `ZuoraEnvironment.SBX`, `ZuoraClient.ZuoraEnv.SBX`).
+All SDKs support environment selection via enum constants (e.g., `ZuoraClient.SBX`, `ZuoraClient.PROD`).
 
 ## 3. Authentication
 
@@ -65,58 +70,27 @@ ZUORA_ORG_IDS=org-id-1                             # Multi-org scoping
 3. SDK auto-refreshes tokens in the background (every 10 minutes by default)
 4. All subsequent API calls include `Authorization: Bearer {token}` header
 
-### Quick Start (Python)
-
-```python
-import os
-from zuora_sdk.zuora_client import ZuoraClient, ZuoraEnvironment
-
-client = ZuoraClient(
-    client_id=os.environ['ZUORA_CLIENT_ID'],
-    client_secret=os.environ['ZUORA_CLIENT_SECRET'],
-    env=ZuoraEnvironment.SBX
-)
-client.initialize()  # Authenticates and starts background token refresh
-```
-
-### Quick Start (JavaScript)
+### Initialization
 
 ```javascript
-const { ZuoraClient } = require('zuora-sdk-js');
+const { ZuoraClient, ZuoraAPI } = require('zuora-sdk-js');
 
 const client = new ZuoraClient({
     clientId: process.env.ZUORA_CLIENT_ID,
     clientSecret: process.env.ZUORA_CLIENT_SECRET,
     env: ZuoraClient.SBX,
 });
-await client.initialize();
+client.debug(true);  // Enable request/response logging (disable in production)
+await client.initialize();  // Authenticates and starts background token refresh
 ```
 
-### Quick Start (Java)
+### Available Environment Constants
 
-```java
-import com.zuora.ZuoraClient;
-
-ZuoraClient client = new ZuoraClient(
-    System.getenv("ZUORA_CLIENT_ID"),
-    System.getenv("ZUORA_CLIENT_SECRET"),
-    ZuoraClient.ZuoraEnv.SBX
-);
-client.initialize();
-```
-
-### Quick Start (C#)
-
-```csharp
-using ZuoraSDK.Client;
-
-var client = new ZuoraClient(
-    Environment.GetEnvironmentVariable("ZUORA_CLIENT_ID"),
-    Environment.GetEnvironmentVariable("ZUORA_CLIENT_SECRET"),
-    ZuoraEnv.SBX
-);
-client.Initialize();
-```
+| Constant | Environment |
+|---|---|
+| `ZuoraClient.SBX` | US Sandbox (Cloud 2) |
+| `ZuoraClient.CSBX` | US Central Sandbox |
+| `ZuoraClient.PROD` | US Production (Cloud 2) |
 
 ## 4. Core API Surfaces
 
@@ -126,31 +100,31 @@ Create and manage customer billing accounts.
 
 **Create Account:**
 
-```python
-from zuora_sdk import CreateAccountRequest
+```javascript
+const { ZuoraClient, ZuoraAPI } = require('zuora-sdk-js');
 
-account = client.accounts_api().create_account(
-    CreateAccountRequest(
-        name='Acme Corp',
-        bill_to_contact={
-            'first_name': 'Jane',
-            'last_name': 'Doe',
-            'state': 'California',
-            'country': 'USA'
-        },
-        auto_pay=False,
-        currency='USD',
-        bill_cycle_day='1'
-    ))
-print(f"Account created: {account.account_number}")
+// Create a basic account
+let createAccountRequest = new ZuoraAPI.CreateAccountRequest();
+createAccountRequest.Name = 'Acme Corp';
+createAccountRequest.Currency = 'USD';
+createAccountRequest.BillCycleDay = 1;
+createAccountRequest.AutoPay = false;
+createAccountRequest.BillToContact = {
+    FirstName: 'Jane',
+    LastName: 'Doe',
+    State: 'California',
+    Country: 'USA'
+};
+
+const account = await client.accountsApi.createAccount(createAccountRequest);
+console.log('Account Number:', account.AccountNumber);
 ```
 
-**Query Account with Expansion:**
+**Get Account:**
 
-```python
-account = client.object_queries_api().query_account_by_key(
-    'A00000001',
-    expand=['billTo', 'subscriptions'])
+```javascript
+const accountDetail = await client.accountsApi.getAccount(account.AccountId);
+console.log(JSON.stringify(accountDetail, null, 2));
 ```
 
 ### 4.2 Product Catalog
@@ -159,35 +133,58 @@ Build your product catalog with Products, Rate Plans, and Charges.
 
 **Create Product:**
 
-```python
-from zuora_sdk import CreateProductRequest
+```javascript
+let productReq = new ZuoraAPI.CreateProductRequest();
+productReq.Name = 'Gold Membership';
+productReq.Description = 'Premium subscription tier';
+productReq.EffectiveStartDate = '2024-01-01';
+productReq.EffectiveEndDate = '2034-01-01';
 
-product = client.products_api().create_product(
-    CreateProductRequest(
-        name='Gold Membership',
-        description='Premium subscription tier',
-        effective_start_date='2024-01-01',
-        effective_end_date='2034-01-01'
-    ))
-product_id = product.id
+const product = await client.productsApi.createProduct(productReq);
+console.log('Product ID:', product.Id);
 ```
 
-**Query Products:**
+**Create Rate Plan:**
 
-```python
-products = client.object_queries_api().query_products()
-for prod in products.data:
-    print(f"Product: {prod.product_number} - {prod.name}")
+```javascript
+let planReq = new ZuoraAPI.CreateProductRatePlanRequest();
+planReq.Name = 'Monthly Plan';
+planReq.ProductId = product.Id;
+planReq.Description = 'Monthly billing plan';
+planReq.EffectiveStartDate = '2024-01-01';
+planReq.EffectiveEndDate = '2034-01-01';
+planReq.activeCurrencies = ['USD'];
+
+const ratePlan = await client.productRatePlansApi
+    .createProductRatePlan(planReq, {});
 ```
 
-**Query Rate Plans with Charges and Tiers:**
+**Create Charge with Pricing Tier:**
 
-```python
-rate_plans = client.object_queries_api().query_product_rate_plans(
-    filter=['productId.EQ:8ad097b4917efc7701917f0d297d01b7'],
-    expand=['productrateplancharges', 'productrateplancharges.productrateplanchargetiers'])
-for rp in rate_plans.data:
-    print(f"Rate Plan: {rp.product_rate_plan_number} - {rp.name}")
+```javascript
+let chargeReq = new ZuoraAPI.CreateProductRatePlanChargeRequest();
+chargeReq.Name = 'Monthly Fee';
+chargeReq.ChargeModel = 'Flat Fee Pricing';
+chargeReq.ChargeType = 'Recurring';
+chargeReq.TriggerEvent = 'ContractEffective';
+chargeReq.ProductRatePlanId = ratePlan.Id;
+chargeReq.BillCycleType = 'DefaultFromCustomer';
+chargeReq.BillingPeriod = 'Monthly';
+chargeReq.UseDiscountSpecificAccountingCode = false;
+
+let tierData = new ZuoraAPI.ProductRatePlanChargeTierData();
+tierData.ProductRatePlanChargeTier = [{ Currency: 'USD', price: 29.99 }];
+chargeReq.ProductRatePlanChargeTierData = tierData;
+
+const charge = await client.productRatePlanChargesApi
+    .createProductRatePlanCharge(chargeReq, {});
+```
+
+**Verify Product:**
+
+```javascript
+const productDetail = await client.productsApi.getProduct(product.Id);
+console.log(JSON.stringify(productDetail, (k, v) => v ?? undefined, 2));
 ```
 
 ### 4.3 Orders & Subscriptions
@@ -196,126 +193,123 @@ Use the Orders API to create, amend, renew, and cancel subscriptions.
 
 **Create Subscription via Order:**
 
-```python
-from datetime import date
-from zuora_sdk import CreateOrderRequest, ProcessingOptionsWithDelayedCapturePayment
+```javascript
+const orderReq = new ZuoraAPI.CreateOrderRequest();
+orderReq.OrderDate = new Date().toISOString().split('T')[0];
+orderReq.ExistingAccountNumber = 'A00000001';
+orderReq.Subscriptions = [{
+    OrderActions: [{
+        Type: 'CreateSubscription',
+        CreateSubscription: {
+            Terms: {
+                InitialTerm: { TermType: 'EVERGREEN' }
+            },
+            SubscribeToRatePlans: [
+                { ProductRatePlanNumber: 'PRP-00000151' }
+            ]
+        }
+    }]
+}];
+orderReq.ProcessingOptions = {
+    RunBilling: true,
+    BillingOptions: {
+        TargetDate: new Date().toISOString().split('T')[0]
+    }
+};
 
-order = client.orders_api().create_order(
-    CreateOrderRequest(
-        order_date=date.today().strftime('%Y-%m-%d'),
-        existing_account_number='A00000001',
-        subscriptions=[{
-            'order_actions': [{
-                'type': 'CreateSubscription',
-                'create_subscription': {
-                    'terms': {
-                        'initial_term': {'term_type': 'EVERGREEN'}
-                    },
-                    'subscribe_to_rate_plans': [
-                        {'product_rate_plan_number': 'PRP-00000151'}
-                    ]
-                }
-            }]
-        }],
-        processing_options=ProcessingOptionsWithDelayedCapturePayment(
-            run_billing=True,
-            billing_options={'target_date': date.today().strftime('%Y-%m-%d')}
-        )
-    ))
-print(f"Order: {order.order_number}, Subscription: {order.subscription_numbers}")
+const order = await client.ordersApi.createOrder(orderReq);
+console.log('Order:', order.OrderNumber);
+console.log('Subscriptions:', order.SubscriptionNumbers);
 ```
 
 **Preview Order (dry run):**
 
-```python
-from zuora_sdk import PreviewOrderRequest
-
-preview = client.orders_api().preview_order(
-    PreviewOrderRequest(
-        order_date=date.today().strftime('%Y-%m-%d'),
-        existing_account_number='A00000001',
-        subscriptions=[{
-            'order_actions': [{
-                'type': 'CreateSubscription',
-                'create_subscription': {
-                    'terms': {'initial_term': {'term_type': 'EVERGREEN'}},
-                    'subscribe_to_rate_plans': [
-                        {'product_rate_plan_number': 'PRP-00000151'}
-                    ]
-                }
-            }]
-        }],
-        preview_options={
-            'preview_thru_type': 'NumberOfPeriods',
-            'preview_number_of_periods': 1,
-            'preview_types': ['BillingDocs']
+```javascript
+const previewReq = new ZuoraAPI.PreviewOrderRequest();
+previewReq.OrderDate = new Date().toISOString().split('T')[0];
+previewReq.ExistingAccountNumber = 'A00000001';
+previewReq.Subscriptions = [{
+    OrderActions: [{
+        Type: 'CreateSubscription',
+        CreateSubscription: {
+            Terms: {
+                InitialTerm: { TermType: 'EVERGREEN' }
+            },
+            SubscribeToRatePlans: [
+                { ProductRatePlanNumber: 'PRP-00000151' }
+            ]
         }
-    ))
+    }]
+}];
+previewReq.PreviewOptions = {
+    PreviewThruType: 'NumberOfPeriods',
+    PreviewNumberOfPeriods: 1,
+    PreviewTypes: ['BillingDocs']
+};
+
+const preview = await client.ordersApi.previewOrder(previewReq);
+console.log(JSON.stringify(preview, null, 2));
 ```
 
 ### 4.4 Invoicing
 
 **Create Standalone Invoice:**
 
-```python
-from zuora_sdk import CreateInvoiceRequest, CreateInvoiceItem
+```javascript
+const invoiceReq = new ZuoraAPI.CreateInvoiceRequest();
+invoiceReq.AccountNumber = 'A00000001';
+invoiceReq.AutoPay = false;
+invoiceReq.InvoiceDate = '2024-01-01';
+invoiceReq.Status = 'Posted';
+invoiceReq.InvoiceItems = [{
+    Amount: 100.0,
+    ChargeName: 'Set Up Fee',
+    Description: 'One-time setup charge',
+    Quantity: 1.0,
+    ServiceStartDate: '2024-01-01',
+    UOM: 'Each'
+}];
 
-invoice = client.invoices_api().create_standalone_invoice(
-    CreateInvoiceRequest(
-        account_number='A00000001',
-        auto_pay=False,
-        invoice_date='2024-01-01',
-        status='Posted',
-        invoice_items=[
-            CreateInvoiceItem(
-                amount=100.0,
-                charge_name='Set Up Fee',
-                description='One-time setup charge',
-                quantity=1.0,
-                service_start_date='2024-01-01',
-                uom='Each'
-            )
-        ]
-    ))
-print(f"Invoice {invoice.invoice_number} created, balance: {invoice.balance}")
-```
-
-**Query Invoices:**
-
-```python
-# By invoice number
-inv = client.object_queries_api().query_invoice_by_key(
-    'INV00000315',
-    expand=['invoiceItems'])
-
-# By account
-invoices = client.object_queries_api().query_invoices(
-    filter=['accountId.EQ:2c92c0f96db4d8cc016db9400a4e4c16'])
+const invoice = await client.invoicesApi.createStandaloneInvoice(invoiceReq);
+console.log(`Invoice ${invoice.InvoiceNumber}: $${invoice.Balance}`);
 ```
 
 ### 4.5 Payments
 
 **Create Payment and Apply to Invoice:**
 
-```python
-from zuora_sdk import CreatePaymentRequest, CreatePaymentInvoiceApplication
+```javascript
+const paymentReq = new ZuoraAPI.CreatePaymentRequest();
+paymentReq.AccountNumber = 'A00000001';
+paymentReq.Amount = 100.0;
+paymentReq.Currency = 'USD';
+paymentReq.EffectiveDate = '2024-11-30';
+paymentReq.Type = 'External';
+paymentReq.PaymentMethodType = 'Check';
+paymentReq.Invoices = [{
+    Amount: 100.0,
+    InvoiceId: invoice.Id
+}];
 
-payment = client.payments_api().create_payment(
-    CreatePaymentRequest(
-        account_number='A00000001',
-        amount=100.0,
-        currency='USD',
-        effective_date='2024-11-30',
-        type='External',
-        payment_method_type='Check',
-        invoices=[
-            CreatePaymentInvoiceApplication(
-                amount=100.0,
-                invoice_id=invoice.id
-            )
-        ]
-    ))
-print(f"Payment created: {payment.number}")
+const payment = await client.paymentsApi.createPayment(paymentReq);
+console.log('Payment:', payment.Number);
+```
+
+### 4.6 Bill Runs
+
+**Create Bill Run for Specific Account:**
+
+```javascript
+const billRunFilter = new ZuoraAPI.BillRunFilter();
+billRunFilter.filterType = 'Account';
+billRunFilter.accountId = 'A00000001';
+
+const billRunReq = new ZuoraAPI.CreateBillRunRequest();
+billRunReq.billRunFilters = [billRunFilter];
+billRunReq.targetDate = '2025-01-31';
+
+const billRun = await client.billRunApi.createBillRun(billRunReq);
+console.log('Bill Run Created:', billRun);
 ```
 
 ## 5. Object Query API
@@ -344,59 +338,66 @@ Use dot-notation operators in the `filter` parameter:
 | `SW` | Starts with | `name.SW:Test` |
 | `IN` | In set | `status.IN:Active,Cancelled` |
 
-```python
-# Filter accounts by currency
-accounts = client.object_queries_api().query_accounts(
-    filter=['currency.EQ:USD', 'status.EQ:Active'],
-    sort=['accountNumber.ASC'],
-    page_size=20)
+```javascript
+// Filter accounts by currency (via REST — SDKs wrap this)
+// GET /object-query/accounts?filter[]=currency.EQ:USD&filter[]=status.EQ:Active&sort[]=accountNumber.ASC&pageSize=20
+const accounts = await client.objectQueriesApi.queryAccounts({
+    filter: ['currency.EQ:USD', 'status.EQ:Active'],
+    sort: ['accountNumber.ASC'],
+    pageSize: 20
+});
 ```
 
 ### Expansion (Joins)
 
 Include related objects in a single response using `expand`:
 
-```python
-# Get account with billing contact and subscriptions
-account = client.object_queries_api().query_account_by_key(
-    'A00000001',
-    expand=['billTo', 'subscriptions', 'subscriptions.rateplans'])
+```javascript
+// Get account with billing contact and subscriptions
+// GET /object-query/accounts/{key}?expand[]=billTo&expand[]=subscriptions
+const account = await client.objectQueriesApi.queryAccountByKey('A00000001', {
+    expand: ['billTo', 'subscriptions', 'subscriptions.rateplans']
+});
 
-# Get invoice with line items
-invoice = client.object_queries_api().query_invoice_by_key(
-    'INV00000315',
-    expand=['invoiceItems'])
+// Get invoice with line items
+const invoice = await client.objectQueriesApi.queryInvoiceByKey('INV00000315', {
+    expand: ['invoiceItems']
+});
 
-# Get product catalog with full charge details
-rate_plans = client.object_queries_api().query_product_rate_plans(
-    filter=['productId.EQ:prod-id'],
-    expand=['productrateplancharges',
-            'productrateplancharges.productrateplanchargetiers'])
+// Get product catalog with full charge details
+const ratePlans = await client.objectQueriesApi.queryProductRatePlans({
+    filter: ['productId.EQ:prod-id'],
+    expand: ['productrateplancharges',
+             'productrateplancharges.productrateplanchargetiers']
+});
 ```
 
 ### Pagination
 
 Object Query uses cursor-based pagination:
 
-```python
-# First page
-response = client.object_queries_api().query_accounts(page_size=20)
-print(f"Page 1: {len(response.data)} accounts")
+```javascript
+// First page
+let response = await client.objectQueriesApi.queryAccounts({ pageSize: 20 });
+console.log(`Page 1: ${response.data.length} accounts`);
 
-# Next page (if available)
-if response.next_page:
-    response = client.object_queries_api().query_accounts(
-        page_size=20,
-        cursor=response.next_page)
+// Next page (if available)
+if (response.nextPage) {
+    response = await client.objectQueriesApi.queryAccounts({
+        pageSize: 20,
+        cursor: response.nextPage
+    });
+}
 ```
 
 ### Field Selection
 
 Reduce response payload by selecting specific fields:
 
-```python
-accounts = client.object_queries_api().query_accounts(
-    fields=['id', 'accountNumber', 'name', 'balance'])
+```javascript
+const accounts = await client.objectQueriesApi.queryAccounts({
+    fields: ['id', 'accountNumber', 'name', 'balance']
+});
 ```
 
 ## 6. Common Request Headers
@@ -427,50 +428,35 @@ All Zuora API errors return a consistent structure:
 }
 ```
 
-### Comprehensive Error Handler (Python)
+### Error Handling Pattern
 
-```python
-import json
-from zuora_sdk.rest import ApiException
-
-try:
-    account = client.accounts_api().create_account(request)
-except ApiException as e:
-    print(f"HTTP Status: {e.status}")
-    print(f"Reason: {e.reason}")
-
-    if e.body:
-        error_details = json.loads(e.body)
-        for reason in error_details.get('reasons', []):
-            print(f"  Code: {reason['code']}, Message: {reason['message']}")
-
-    # Handle specific HTTP status codes
-    if e.status == 401:
-        # Token expired or invalid credentials
-        client.initialize()  # Re-authenticate
-    elif e.status == 404:
-        print("Resource not found")
-    elif e.status == 429:
-        # Rate limited - implement backoff
-        pass
-```
-
-### Error Handler (Java)
-
-```java
-import com.zuora.ApiException;
-import com.zuora.model.CommonResponse;
-
+```javascript
 try {
-    CreateAccountResponse response = zuoraClient.accountsApi()
-        .createAccountApi(request).execute();
-} catch (ApiException e) {
-    System.err.println("HTTP Status: " + e.getCode());
-    CommonResponse errorResponse = CommonResponse.fromJson(e.getResponseBody());
-    if (errorResponse.getReasons() != null) {
-        errorResponse.getReasons().forEach(reason ->
-            System.err.printf("Code: %s, Message: %s%n",
-                reason.getCode(), reason.getMessage()));
+    const result = await client.productsApi.createProduct(request);
+    if (result.Success) {
+        console.log('Created:', result.Id);
+    } else {
+        console.log('Operation failed:', result);
+    }
+} catch (error) {
+    console.error('HTTP Status:', error.status);
+
+    // Parse structured error response
+    if (error.response && error.response.body) {
+        const body = error.response.body;
+        if (body.reasons) {
+            body.reasons.forEach(reason => {
+                console.error(`  [${reason.code}] ${reason.message}`);
+            });
+        }
+    }
+
+    // Handle specific HTTP status codes
+    if (error.status === 401) {
+        // Token expired — re-initialize client
+        await client.initialize();
+    } else if (error.status === 429) {
+        // Rate limited — back off and retry
     }
 }
 ```
@@ -479,18 +465,12 @@ try {
 
 ### Idempotency
 
-Use the `Idempotency-Key` header for POST/PATCH requests to prevent duplicate operations:
-
-```python
-# SDK handles this via request options
-# For manual REST calls, always include:
-# headers = {'Idempotency-Key': str(uuid.uuid4())}
-```
+Use the `Idempotency-Key` header for POST/PATCH requests to prevent duplicate operations. The SDK supports setting custom headers per request.
 
 ### Rate Limiting
 
 - Zuora enforces rate limits per tenant
-- SDKs include built-in retry with exponential backoff (Python SDK: 3 attempts with 1s, 2s, 4s delays)
+- SDKs include built-in retry with exponential backoff
 - Monitor `429 Too Many Requests` responses
 - Use bulk/async endpoints for high-volume operations
 
@@ -498,42 +478,30 @@ Use the `Idempotency-Key` header for POST/PATCH requests to prevent duplicate op
 
 For multi-entity tenants, scope API calls using headers:
 
-```python
-# Set entity context at client level
-client.set_default_header('Zuora-Entity-Ids', 'entity-uuid-1')
-
-# Or per-request via SDK options
+```javascript
+// Set entity/org context — check SDK docs for per-request header options
+// Zuora-Entity-Ids: entity-uuid-1
+// Zuora-Org-Ids: org-uuid-1
 ```
 
 ### Async Operations
 
 For long-running operations (bill runs, large orders), use async endpoints:
 
-```python
-# Async order creation
-response = client.orders_api().create_order_async(request)
-# Poll for completion using the job ID
+```javascript
+// Async order creation
+const asyncResponse = await client.ordersApi.createOrderAsync(orderReq);
+// Poll for completion using the job ID
 ```
 
 ### Custom Fields
 
 Zuora supports custom fields (suffix `__c`) on most objects:
 
-```python
-# Include custom fields in create/update requests
-account = CreateAccountRequest(
-    name='Acme Corp',
-    # ... standard fields ...
-)
-# Custom fields via additional properties
-account.additional_properties = {'salesRegion__c': 'West'}
-```
-
-```java
-// Java uses putAdditionalProperty
-CreateAccountRequest request = new CreateAccountRequest()
-    .name("Acme Corp")
-    .putAdditionalProperty("salesRegion__c", "West");
+```javascript
+// Include custom fields via additional properties
+createAccountRequest.salesRegion__c = 'West';
+createAccountRequest.industry__c = 'Technology';
 ```
 
 ## 9. Charge Models
@@ -562,7 +530,7 @@ Zuora supports 16 charge models for flexible pricing:
 - [ ] Replace sandbox OAuth credentials with production credentials
 - [ ] Set `ZUORA_CLIENT_ID` and `ZUORA_CLIENT_SECRET` via secure secret management
 - [ ] Verify API version is explicitly set (`Zuora-Version` header)
-- [ ] Enable auto-auth with token refresh (use `ZuoraClient.initialize()`)
+- [ ] Enable auto-auth with token refresh (use `client.initialize()`)
 - [ ] Implement error handling for all API calls with proper logging
 - [ ] Use `Idempotency-Key` headers for all mutating POST/PATCH requests
 - [ ] Set up `Zuora-Track-Id` headers for request tracing
@@ -572,7 +540,7 @@ Zuora supports 16 charge models for flexible pricing:
 - [ ] Review custom field mappings (`__c` fields)
 - [ ] Validate product catalog (products, rate plans, charges) exists in production
 - [ ] Test full order-to-cash flow: account creation, order, invoice, payment
-- [ ] Enable SDK debugging in staging, disable in production
+- [ ] Disable SDK debug mode in production
 
 ### Monitoring
 
