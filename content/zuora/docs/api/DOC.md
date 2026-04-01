@@ -75,13 +75,17 @@ ZUORA_ORG_IDS=org-id-1                             # Multi-org scoping
 ```javascript
 const { ZuoraClient, ZuoraAPI } = require('zuora-sdk-js');
 
-const client = new ZuoraClient({
-    clientId: process.env.ZUORA_CLIENT_ID,
-    clientSecret: process.env.ZUORA_CLIENT_SECRET,
-    env: ZuoraClient.SBX,
-});
-client.debug(true);  // Enable request/response logging (disable in production)
-await client.initialize();  // Authenticates and starts background token refresh
+(async () => {
+    const client = new ZuoraClient({
+        clientId: process.env.ZUORA_CLIENT_ID,
+        clientSecret: process.env.ZUORA_CLIENT_SECRET,
+        env: ZuoraClient.SBX,
+    });
+    client.debug(true);  // Enable request/response logging (disable in production)
+    await client.initialize();  // Authenticates and starts background token refresh
+
+    // API calls here...
+})();
 ```
 
 ### Available Environment Constants
@@ -101,8 +105,6 @@ Create and manage customer billing accounts.
 **Create Account:**
 
 ```javascript
-const { ZuoraClient, ZuoraAPI } = require('zuora-sdk-js');
-
 // Create a basic account
 let createAccountRequest = new ZuoraAPI.CreateAccountRequest();
 createAccountRequest.Name = 'Acme Corp';

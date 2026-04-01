@@ -1,6 +1,6 @@
 ---
-name: subscriptions
-description: "Zuora subscription billing guide covering the full order-to-cash lifecycle: product catalog setup, subscription creation via Orders API, billing runs, invoicing, payments, and revenue recognition"
+name: order-to-cash
+description: "Zuora order-to-cash lifecycle guide: product catalog setup, subscription creation via Orders API, billing runs, invoicing, payments, and revenue recognition"
 metadata:
   languages: "javascript"
   versions: "2025-08-12"
@@ -49,21 +49,23 @@ Before creating subscriptions, you need a product catalog: **Product > Rate Plan
 ```javascript
 const { ZuoraClient, ZuoraAPI } = require('zuora-sdk-js');
 
-const client = new ZuoraClient({
-    clientId: process.env.ZUORA_CLIENT_ID,
-    clientSecret: process.env.ZUORA_CLIENT_SECRET,
-    env: ZuoraClient.SBX,
-});
-await client.initialize();
+(async () => {
+    const client = new ZuoraClient({
+        clientId: process.env.ZUORA_CLIENT_ID,
+        clientSecret: process.env.ZUORA_CLIENT_SECRET,
+        env: ZuoraClient.SBX,
+    });
+    await client.initialize();
 
-let productReq = new ZuoraAPI.CreateProductRequest();
-productReq.Name = 'Gold Membership';
-productReq.Description = 'Premium subscription tier';
-productReq.EffectiveStartDate = '2024-01-01';
-productReq.EffectiveEndDate = '2034-01-01';
+    let productReq = new ZuoraAPI.CreateProductRequest();
+    productReq.Name = 'Gold Membership';
+    productReq.Description = 'Premium subscription tier';
+    productReq.EffectiveStartDate = '2024-01-01';
+    productReq.EffectiveEndDate = '2034-01-01';
 
-const product = await client.productsApi.createProduct(productReq);
-console.log('Product ID:', product.Id);
+    const product = await client.productsApi.createProduct(productReq);
+    console.log('Product ID:', product.Id);
+})();
 ```
 
 ### Create a Rate Plan

@@ -59,24 +59,34 @@ ZUORA_ENV=SBX  # SBX, PROD, etc.
 ```javascript
 const { ZuoraClient, ZuoraAPI } = require('zuora-sdk-js');
 
-const client = new ZuoraClient({
-    clientId: process.env.ZUORA_CLIENT_ID,
-    clientSecret: process.env.ZUORA_CLIENT_SECRET,
-    env: ZuoraClient.SBX,
-});
-await client.initialize();
+(async () => {
+    const client = new ZuoraClient({
+        clientId: process.env.ZUORA_CLIENT_ID,
+        clientSecret: process.env.ZUORA_CLIENT_SECRET,
+        env: ZuoraClient.SBX,
+    });
+    await client.initialize();
+
+    // API calls here...
+})();
 ```
 
 ### With Debug Mode
 
 ```javascript
-const client = new ZuoraClient({
-    clientId: process.env.ZUORA_CLIENT_ID,
-    clientSecret: process.env.ZUORA_CLIENT_SECRET,
-    env: ZuoraClient.SBX,
-});
-client.debug(true);  // Log request/response details
-await client.initialize();
+const { ZuoraClient, ZuoraAPI } = require('zuora-sdk-js');
+
+(async () => {
+    const client = new ZuoraClient({
+        clientId: process.env.ZUORA_CLIENT_ID,
+        clientSecret: process.env.ZUORA_CLIENT_SECRET,
+        env: ZuoraClient.SBX,
+    });
+    client.debug(true);  // Log request/response details
+    await client.initialize();
+
+    // API calls here...
+})();
 ```
 
 ### Available Environments
@@ -108,8 +118,6 @@ The `ZuoraClient` exposes typed API accessors as properties:
 ### Products
 
 ```javascript
-const { ZuoraClient, ZuoraAPI } = require('zuora-sdk-js');
-
 // Create product
 let createProductRequest = new ZuoraAPI.CreateProductRequest();
 createProductRequest.Name = 'Gold Membership';
